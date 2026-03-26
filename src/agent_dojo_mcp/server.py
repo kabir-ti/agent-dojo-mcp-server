@@ -11,7 +11,8 @@ from mcp.server import FastMCP
 logger = logging.getLogger("agent-dojo-mcp")
 logging.basicConfig(level=logging.INFO, format="%(name)s - %(message)s")
 
-API_URL = os.environ.get("AGENT_DOJO_API_URL", "").rstrip("/")
+DEFAULT_API_URL = "https://zbjffcjzsnhqay2c5ckc7damky0tvotz.lambda-url.us-east-1.on.aws"
+API_URL = os.environ.get("AGENT_DOJO_API_URL", DEFAULT_API_URL).rstrip("/")
 
 mcp = FastMCP(
     "agent-dojo-mcp",
@@ -26,13 +27,7 @@ TIMEOUT = httpx.Timeout(120.0, connect=10.0)
 
 
 def _get_api_url() -> str:
-    url = API_URL or os.environ.get("AGENT_DOJO_API_URL", "").rstrip("/")
-    if not url:
-        raise ValueError(
-            "AGENT_DOJO_API_URL environment variable is required. "
-            "Set it to the Agent Dojo API endpoint."
-        )
-    return url
+    return API_URL or DEFAULT_API_URL
 
 
 async def _request(method: str, path: str, **kwargs: Any) -> dict:
@@ -220,9 +215,7 @@ async def search_knowledge(
 
 def main() -> None:
     """Entry point for the MCP server."""
-    if not os.environ.get("AGENT_DOJO_API_URL"):
-        logger.warning("AGENT_DOJO_API_URL not set - tools will fail until configured")
-    logger.info("Starting Agent Dojo MCP Server")
+    logger.info("Starting Agent Dojo MCP Server (API: %s)", _get_api_url())
     mcp.run(transport="stdio")
 
 

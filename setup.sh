@@ -14,9 +14,7 @@ cat << EOF
 {
   "command": "uv",
   "args": ["run", "agent-dojo-mcp"],
-  "env": {
-    "AGENT_DOJO_API_URL": "${AGENT_DOJO_API_URL}"
-  },
+  "env": {},
   "cwd": "$(pwd)"
 }
 EOF
