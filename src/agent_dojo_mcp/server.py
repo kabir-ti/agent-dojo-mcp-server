@@ -13,6 +13,8 @@ logging.basicConfig(level=logging.INFO, format="%(name)s - %(message)s")
 
 DEFAULT_API_URL = "https://zbjffcjzsnhqay2c5ckc7damky0tvotz.lambda-url.us-east-1.on.aws"
 API_URL = os.environ.get("AGENT_DOJO_API_URL", DEFAULT_API_URL).rstrip("/")
+API_KEY = os.environ.get("AGENT_DOJO_API_KEY", "")
+DEFAULT_DOJO = os.environ.get("AGENT_DOJO_DEFAULT", "devbot")
 
 mcp = FastMCP(
     "agent-dojo-mcp",
@@ -30,10 +32,18 @@ def _get_api_url() -> str:
     return API_URL or DEFAULT_API_URL
 
 
+def _get_headers() -> dict[str, str]:
+    headers: dict[str, str] = {}
+    if API_KEY:
+        headers["x-api-key"] = API_KEY
+    return headers
+
+
 async def _request(method: str, path: str, **kwargs: Any) -> dict:
     url = f"{_get_api_url()}{path}"
+    req_headers = {**_get_headers(), **kwargs.pop("headers", {})}
     async with httpx.AsyncClient(timeout=TIMEOUT) as client:
-        resp = await client.request(method, url, **kwargs)
+        resp = await client.request(method, url, headers=req_headers, **kwargs)
         resp.raise_for_status()
         return resp.json()
 
@@ -41,7 +51,7 @@ async def _request(method: str, path: str, **kwargs: Any) -> dict:
 @mcp.tool()
 async def ask_dojo(
     question: str,
-    dojo: str = "devbot",
+    dojo: str = "",
     model: str = "gpt-5.4",
 ) -> str:
     """Ask an expert question and get a comprehensive answer powered by RAG + Knowledge Graph.
@@ -51,8 +61,8 @@ async def ask_dojo(
 
     Args:
         question: The technical question to ask. Be specific for best results.
-        dojo: Which knowledge domain to query. Options: "devbot" (software engineering),
-              "openclaw" (OpenClaw AI agent framework). Default: "devbot".
+        dojo: Which knowledge domain to query. Use list_dojos to see available options.
+              Default is set by AGENT_DOJO_DEFAULT env var (falls back to "devbot").
         model: LLM model to use for answer generation. Options: "gpt-5.4", "gpt-5.3",
                "claude-sonnet-4.6", "claude-opus-4.6", "gemini-3-pro", "gemini-3-flash".
                Default: "gpt-5.4".
@@ -63,7 +73,7 @@ async def ask_dojo(
     try:
         data = await _request("POST", "/ask", json={
             "question": question,
-            "dojo": dojo,
+            "dojo": dojo or DEFAULT_DOJO,
             "model": model,
         })
 
@@ -142,7 +152,7 @@ async def list_dojos() -> str:
 @mcp.tool()
 async def search_knowledge(
     query: str,
-    dojo: str = "devbot",
+    dojo: str = "",
     dimension: str = "",
     limit: int = 20,
 ) -> str:
@@ -153,7 +163,8 @@ async def search_knowledge(
 
     Args:
         query: Search query - topic, technology, or concept to search for.
-        dojo: Which knowledge domain to search. Options: "devbot", "openclaw". Default: "devbot".
+        dojo: Which knowledge domain to search. Use list_dojos to see available options.
+              Default is set by AGENT_DOJO_DEFAULT env var (falls back to "devbot").
         dimension: Filter by knowledge dimension (e.g. "best_practice", "anti_pattern",
                    "production_lesson"). Leave empty to search all dimensions.
         limit: Maximum number of results to return (1-50). Default: 20.
@@ -163,7 +174,7 @@ async def search_knowledge(
     """
     try:
         params: dict[str, Any] = {
-            "dojo": dojo,
+            "dojo": dojo or DEFAULT_DOJO,
             "size": min(max(limit, 1), 50),
         }
         if query:
@@ -215,7 +226,11 @@ async def search_knowledge(
 
 def main() -> None:
     """Entry point for the MCP server."""
-    logger.info("Starting Agent Dojo MCP Server (API: %s)", _get_api_url())
+    key_status = "configured" if API_KEY else "none"
+    logger.info(
+        "Starting Agent Dojo MCP Server (API: %s, default dojo: %s, api_key: %s)",
+        _get_api_url(), DEFAULT_DOJO, key_status,
+    )
     mcp.run(transport="stdio")
 
 
