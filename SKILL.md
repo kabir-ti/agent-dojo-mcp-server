@@ -82,7 +82,7 @@ https://mcp-server.ti.trilogy.com/098ab494/sse
 ### Direct API (no MCP)
 
 ```
-POST https://zbjffcjzsnhqay2c5ckc7damky0tvotz.lambda-url.us-east-1.on.aws/ask
+POST https://api.dojo.ti.trilogy.com/ask
 Content-Type: application/json
 
 {"question": "...", "dojo": "devbot"}
@@ -104,7 +104,10 @@ knowledge base, with source attribution.
 ### `list_dojos`
 
 List available knowledge domains with stats and suggested questions.
-No parameters required.
+
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| email | string | no | — | Your email to include private/shared dojos |
 
 ### `search_knowledge`
 

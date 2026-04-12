@@ -11,7 +11,7 @@ from mcp.server import FastMCP
 logger = logging.getLogger("agent-dojo-mcp")
 logging.basicConfig(level=logging.INFO, format="%(name)s - %(message)s")
 
-DEFAULT_API_URL = "https://zbjffcjzsnhqay2c5ckc7damky0tvotz.lambda-url.us-east-1.on.aws"
+DEFAULT_API_URL = "https://api.dojo.ti.trilogy.com"
 API_URL = os.environ.get("AGENT_DOJO_API_URL", DEFAULT_API_URL).rstrip("/")
 API_KEY = os.environ.get("AGENT_DOJO_API_KEY", "")
 DEFAULT_DOJO = os.environ.get("AGENT_DOJO_DEFAULT", "devbot")
@@ -53,6 +53,7 @@ async def ask_dojo(
     question: str,
     dojo: str = "",
     model: str = "gpt-5.4",
+    api_key: str = "",
 ) -> str:
     """Ask an expert question and get a comprehensive answer powered by RAG + Knowledge Graph.
 
@@ -66,16 +67,21 @@ async def ask_dojo(
         model: LLM model to use for answer generation. Options: "gpt-5.4", "gpt-5.3",
                "claude-sonnet-4.6", "claude-opus-4.6", "gemini-3-pro", "gemini-3-flash".
                Default: "gpt-5.4".
+        api_key: API key for private dojos. If omitted, uses the AGENT_DOJO_API_KEY
+                 env var. Not needed for public dojos like devbot.
 
     Returns:
         Expert answer with source attribution and metadata.
     """
     try:
+        extra_headers = {}
+        if api_key:
+            extra_headers["x-api-key"] = api_key
         data = await _request("POST", "/ask", json={
             "question": question,
             "dojo": dojo or DEFAULT_DOJO,
             "model": model,
-        })
+        }, headers=extra_headers)
 
         sources_text = ""
         if data.get("sources"):
@@ -107,18 +113,26 @@ async def ask_dojo(
 
 
 @mcp.tool()
-async def list_dojos() -> str:
+async def list_dojos(email: str = "") -> str:
     """List all available Dojo knowledge domains with their stats and suggested questions.
 
     Returns information about each dojo including name, description,
     total knowledge items, dimension breakdown, and suggested questions
     to help you get started.
 
+    Args:
+        email: Your email address. If provided, results include your private and
+               shared dojos alongside public ones. If omitted, only public dojos
+               are returned.
+
     Returns:
         Available dojos with their knowledge statistics.
     """
     try:
-        data = await _request("GET", "/dojos")
+        params: dict[str, str] = {}
+        if email:
+            params["email"] = email
+        data = await _request("GET", "/dojos", params=params)
 
         lines = []
         for d in data.get("dojos", []):
@@ -155,6 +169,7 @@ async def search_knowledge(
     dojo: str = "",
     dimension: str = "",
     limit: int = 20,
+    api_key: str = "",
 ) -> str:
     """Search the raw knowledge base for specific topics, technologies, or concepts.
 
@@ -165,14 +180,21 @@ async def search_knowledge(
         query: Search query - topic, technology, or concept to search for.
         dojo: Which knowledge domain to search. Use list_dojos to see available options.
               Default is set by AGENT_DOJO_DEFAULT env var (falls back to "devbot").
-        dimension: Filter by knowledge dimension (e.g. "best_practice", "anti_pattern",
-                   "production_lesson"). Leave empty to search all dimensions.
+        dimension: Filter by knowledge dimension. Options: "gotchas", "anti_patterns",
+                   "architecture_patterns", "production_lessons", "security_practices",
+                   "procedures", "debugging_techniques", "tool_comparisons",
+                   "performance_insights", "expert_opinions". Leave empty to search all.
         limit: Maximum number of results to return (1-50). Default: 20.
+        api_key: API key for private dojos. If omitted, uses the AGENT_DOJO_API_KEY
+                 env var. Not needed for public dojos like devbot.
 
     Returns:
         Matching knowledge items with their content and metadata.
     """
     try:
+        extra_headers = {}
+        if api_key:
+            extra_headers["x-api-key"] = api_key
         params: dict[str, Any] = {
             "dojo": dojo or DEFAULT_DOJO,
             "size": min(max(limit, 1), 50),
@@ -182,7 +204,7 @@ async def search_knowledge(
         if dimension:
             params["dimension"] = dimension
 
-        data = await _request("GET", "/knowledge", params=params)
+        data = await _request("GET", "/knowledge", params=params, headers=extra_headers)
 
         items = data.get("items", [])
         total = data.get("total", 0)

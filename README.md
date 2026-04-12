@@ -15,26 +15,32 @@ Ask technical questions and get comprehensive, expert-grade answers grounded in 
 ### `list_dojos`
 Discover available knowledge domains, their statistics, and suggested questions.
 
+**Parameters:**
+- `email` (optional) - Your email to include private/shared dojos alongside public ones
+
 ### `search_knowledge`
 Search and browse the raw knowledge base — useful for exploring available content by topic, technology, or dimension.
 
 **Parameters:**
 - `query` (required) - Search query
 - `dojo` (optional) - Knowledge domain. Default: `devbot`
-- `dimension` (optional) - Filter by dimension (e.g. `best_practice`, `anti_pattern`, `production_lesson`)
+- `dimension` (optional) - Filter: `gotchas`, `anti_patterns`, `architecture_patterns`, `production_lessons`, `security_practices`, `procedures`, `debugging_techniques`, `tool_comparisons`, `performance_insights`, `expert_opinions`
 - `limit` (optional) - Max results (1-50). Default: 20
+- `api_key` (optional) - API key for private dojos
 
 ## Setup
 
-### Environment Variable
+### MCP Hive (cloud — recommended)
+
+SSE connection URL (no local setup needed):
 ```
-AGENT_DOJO_API_URL=https://your-agent-dojo-api-url.com
+https://mcp-server.ti.trilogy.com/098ab494/sse
 ```
 
-### Run with uv
+### Local (uvx — zero config)
+
 ```bash
-uv sync
-uv run agent-dojo-mcp
+uvx --from git+https://github.com/kabir-ti/agent-dojo-mcp-server agent-dojo-mcp
 ```
 
 ### Cursor / Claude Desktop Config
@@ -42,10 +48,11 @@ uv run agent-dojo-mcp
 {
   "mcpServers": {
     "agent-dojo": {
-      "command": "uv",
-      "args": ["run", "agent-dojo-mcp"],
+      "command": "uvx",
+      "args": ["--from", "git+https://github.com/kabir-ti/agent-dojo-mcp-server", "agent-dojo-mcp"],
       "env": {
-        "AGENT_DOJO_API_URL": "https://your-agent-dojo-api-url.com"
+        "AGENT_DOJO_API_URL": "https://api.dojo.ti.trilogy.com",
+        "AGENT_DOJO_DEFAULT": "devbot"
       }
     }
   }
