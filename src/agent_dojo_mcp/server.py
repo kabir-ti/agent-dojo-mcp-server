@@ -11,7 +11,7 @@ from mcp.server import FastMCP
 logger = logging.getLogger("agent-dojo-mcp")
 logging.basicConfig(level=logging.INFO, format="%(name)s - %(message)s")
 
-DEFAULT_API_URL = "https://api.dojo.ti.trilogy.com"
+DEFAULT_API_URL = "https://zbjffcjzsnhqay2c5ckc7damky0tvotz.lambda-url.us-east-1.on.aws"
 API_URL = os.environ.get("AGENT_DOJO_API_URL", DEFAULT_API_URL).rstrip("/")
 API_KEY = os.environ.get("AGENT_DOJO_API_KEY", "")
 DEFAULT_DOJO = os.environ.get("AGENT_DOJO_DEFAULT", "devbot")
