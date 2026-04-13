@@ -25,7 +25,7 @@ mcp = FastMCP(
     ),
 )
 
-TIMEOUT = httpx.Timeout(180.0, connect=10.0)
+TIMEOUT = httpx.Timeout(360.0, connect=10.0)
 
 
 def _get_api_url() -> str:
